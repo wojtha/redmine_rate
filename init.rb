@@ -1,20 +1,24 @@
 require 'redmine'
 
-# Patches to the Redmine core
 require 'dispatcher'
 
+# Patches to the Redmine core
 Dispatcher.to_prepare :redmine_rate do
   gem 'lockfile'
 
-  require_dependency 'application_controller'
-  ApplicationController.send(:include, RateHelper)
-  ApplicationController.send(:helper, :rate)
+  unless ApplicationController.included_modules.include?(RateHelper)
+    require_dependency 'application_controller'
+    ApplicationController.send(:include, RateHelper)
+    ApplicationController.send(:helper, :rate)
+  end
 
-  require_dependency 'time_entry'
-  TimeEntry.send(:include, RateTimeEntryPatch)
+  unless TimeEntry.included_modules.include?(RateTimeEntryPatch)
+    TimeEntry.send(:include, RateTimeEntryPatch)
+  end
 
-  require_dependency 'users_helper'
-  UsersHelper.send(:include, RateUsersHelperPatch) unless UsersHelper.included_modules.include?(RateUsersHelperPatch)
+  unless UsersHelper.included_modules.include?(RateUsersHelperPatch)
+    UsersHelper.send(:include, RateUsersHelperPatch)
+  end
 end
 
 # Hooks
@@ -33,14 +37,15 @@ Redmine::Plugin.register :redmine_rate do
 
   # These settings are set automatically when caching
   settings(:default => {
-             'last_caching_run' => nil
-           })
+      :last_caching_run => nil
+  })
 
   permission :view_rate, { }
 
   menu :admin_menu, :rate_caches, { :controller => 'rate_caches', :action => 'index'}, :caption => :text_rate_caches_panel
 end
 
+# Use hooks
 require 'redmine_rate/hooks/timesheet_hook_helper'
 require 'redmine_rate/hooks/plugin_timesheet_views_timesheets_time_entry_row_class_hook'
 require 'redmine_rate/hooks/plugin_timesheet_views_timesheet_group_header_hook'
